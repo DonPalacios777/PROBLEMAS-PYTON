@@ -1,2 +1,1145 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+import tkinter as tk
+from tkinter import messagebox
+
+
+# Importamos tkinter que es la libreria para crear ventanas y botones en Python.
+# messagebox nos permite mostrar esas ventanitas de aviso/error que aparecen encima de todo.
+
+
+# -----------------------------------------------
+# EJERCICIO 1 - Sistema de aumento de sueldos
+# -----------------------------------------------
+
+# Lista global donde vamos guardando cada trabajador que se registre.
+# Al ser global, cualquier funcion del programa puede acceder a ella.
+historial_sueldos = []
+
+def calcular_porcentaje_sueldo(sueldo):
+    # Segun el sueldo que tenga el trabajador, se le asigna un porcentaje de aumento diferente.
+    # Esto es una estructura condicional encadenada (if / elif / else).
+    # Retorna un decimal: 0.15 = 15%, 0.10 = 10%, 0.08 = 8%
+    if sueldo < 4000:
+        return 0.15         # Sueldos bajos reciben el mayor aumento
+    elif sueldo <= 7000:
+        return 0.10         # Sueldos medios reciben un aumento moderado
+    else:
+        return 0.08         # Sueldos altos reciben el menor aumento
+
+def registrar_trabajador(entrada_nom, entrada_sue, etiqueta_res):
+    # Esta funcion recibe como parametros los campos de texto de la ventana
+    # y la etiqueta donde se mostrara el resultado.
+
+    # .get() extrae el texto que el usuario escribio en el campo.
+    # .strip() elimina espacios en blanco al inicio y al final del texto.
+    nombre = entrada_nom.get().strip()
+    texto_sueldo = entrada_sue.get().strip()
+
+    # Verificamos que ninguno de los campos este vacio antes de continuar.
+    if nombre == "" or texto_sueldo == "":
+        messagebox.showwarning("Aviso", "Por favor completa todos los campos.")
+        return  # Cortamos la ejecucion de la funcion aqui si faltan datos.
+
+    # Intentamos convertir el texto del sueldo a numero decimal (float).
+    # Si el usuario escribio letras, el try/except atrapa el error sin que el programa explote.
+    try:
+        sueldo = float(texto_sueldo)
+    except ValueError:
+        # ValueError ocurre cuando intentas convertir algo que no es numero, ej: "abc"
+        messagebox.showerror("Error", "El sueldo debe ser un numero. Ejemplo: 3500")
+        return
+
+    # Validamos que el sueldo sea un valor positivo con sentido.
+    if sueldo <= 0:
+        messagebox.showerror("Error", "El sueldo debe ser mayor que 0.")
+        return
+
+    # Calculamos el aumento llamando a la funcion que definimos arriba.
+    porcentaje = calcular_porcentaje_sueldo(sueldo)
+    aumento = sueldo * porcentaje          # Monto en soles del aumento
+    nuevo_sueldo = sueldo + aumento        # Sueldo original + el aumento calculado
+
+    # Guardamos los datos del trabajador como un diccionario dentro de la lista global.
+    # Un diccionario almacena pares clave:valor, similar a una ficha de datos.
+    historial_sueldos.append({
+        "nombre": nombre,
+        "sueldo_base": sueldo,
+        "sueldo_nuevo": nuevo_sueldo
+    })
+
+    # Actualizamos el texto de la etiqueta en la ventana con el resumen del calculo.
+    # round(x, 2) redondea el numero a 2 decimales para mostrar soles con centimos.
+    # int(porcentaje * 100) convierte 0.15 -> 15 para mostrarlo como porcentaje entero.
+    etiqueta_res.config(
+        text=(
+            "Trabajador: " + nombre + "\n"
+            "Sueldo base: S/ " + str(round(sueldo, 2)) + "\n"
+            "Porcentaje de aumento: " + str(int(porcentaje * 100)) + "%\n"
+            "Nuevo sueldo: S/ " + str(round(nuevo_sueldo, 2))
+        )
+    )
+
+    # Limpiamos los campos de texto para que el usuario pueda ingresar otro trabajador.
+    entrada_nom.delete(0, tk.END)   # Borra desde el caracter 0 hasta el final
+    entrada_sue.delete(0, tk.END)
+    entrada_nom.focus()             # Mueve el cursor al campo de nombre automaticamente
+
+def ver_historial_sueldos():
+    # Si la lista esta vacia, no tiene sentido abrir la ventana de historial.
+    if len(historial_sueldos) == 0:
+        messagebox.showinfo("Aviso", "No hay trabajadores registrados todavia.")
+        return
+
+    # Toplevel() crea una ventana secundaria encima de la principal, sin cerrarla.
+    ventana_h = tk.Toplevel()
+    ventana_h.title("Historial de trabajadores")
+
+    tk.Label(ventana_h, text="Historial de trabajadores", font=("Arial", 12, "bold")).pack(pady=10)
+
+    # Scrollbar es la barra de desplazamiento vertical para cuando hay muchos registros.
+    barra = tk.Scrollbar(ventana_h)
+    barra.pack(side=tk.RIGHT, fill=tk.Y)  # La colocamos a la derecha y que ocupe toda la altura
+
+    # Text es un widget que permite mostrar texto en varias lineas con scroll.
+    # yscrollcommand conecta el area de texto con la barra de desplazamiento.
+    area = tk.Text(ventana_h, width=45, height=15, yscrollcommand=barra.set)
+    area.pack(padx=10, pady=5)
+    barra.config(command=area.yview)  # Cuando mueves la barra, el texto se desplaza
+
+    # enumerate(lista, 1) recorre la lista y nos da el indice empezando desde 1.
+    for i, t in enumerate(historial_sueldos, 1):
+        # insert(tk.END, texto) agrega texto al final del area de texto.
+        area.insert(tk.END,
+            str(i) + ". " + t["nombre"] + "\n"
+            "   Sueldo base: S/ " + str(round(t["sueldo_base"], 2)) + "\n"
+            "   Sueldo nuevo: S/ " + str(round(t["sueldo_nuevo"], 2)) + "\n"
+            "   --------------------\n"
+        )
+
+    # Desactivamos el area de texto para que el usuario no pueda modificar lo que se muestra.
+    area.config(state=tk.DISABLED)
+    tk.Button(ventana_h, text="Cerrar", command=ventana_h.destroy).pack(pady=8)
+
+def abrir_ejercicio1():
+    # Cada ejercicio abre su propia ventana secundaria con Toplevel.
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 1 - Aumento de sueldos")
+
+    # grid() organiza los widgets en una cuadricula de filas y columnas.
+    # columnspan=2 hace que el widget ocupe 2 columnas en lugar de 1.
+    tk.Label(ventana, text="Sistema de aumento de sueldos", font=("Arial", 13, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(ventana, text="Nombre del trabajador:").grid(row=1, column=0, sticky="w", padx=15, pady=5)
+    # sticky="w" alinea el widget al lado oeste (izquierda) de su celda
+    entrada_nom = tk.Entry(ventana, width=25)
+    entrada_nom.grid(row=1, column=1, padx=10)
+
+    tk.Label(ventana, text="Sueldo basico (S/):").grid(row=2, column=0, sticky="w", padx=15, pady=5)
+    entrada_sue = tk.Entry(ventana, width=25)
+    entrada_sue.grid(row=2, column=1, padx=10)
+
+    # Etiqueta vacia al inicio donde luego se mostraran los resultados del calculo.
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=5, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.grid(row=3, column=0, columnspan=2, padx=15, pady=8)
+
+    # Frame es un contenedor invisible que agrupa widgets, util para alinear botones juntos.
+    frame_botones = tk.Frame(ventana)
+    frame_botones.grid(row=5, column=0, columnspan=2, pady=5)
+
+    # lambda es una funcion anonima de una sola linea.
+    # La usamos aqui para poder pasar argumentos al comando del boton.
+    # Sin lambda, el boton llamaria a registrar_trabajador en el momento de crearse, no al presionarlo.
+    tk.Button(frame_botones, text="Registrar", width=15,
+              command=lambda: registrar_trabajador(entrada_nom, entrada_sue, etiqueta_res)
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(frame_botones, text="Ver historial", width=15,
+              command=ver_historial_sueldos
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(ventana, text="Regresar al menu", width=20,
+              command=ventana.destroy   # destroy() cierra solo esta ventana, no el programa completo
+              ).grid(row=6, column=0, columnspan=2, pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 2 - Pago en parque de diversiones
+# -----------------------------------------------
+
+historial_parque = []
+COSTO_JUEGO = 50  # Constante con el precio fijo por juego. En mayusculas por convencion de Python.
+
+def calcular_descuento_parque(edad):
+    # Determina el porcentaje de descuento segun la edad del visitante.
+    if edad < 10:
+        return 0.25     # Ninos menores de 10: 25% de descuento
+    elif edad <= 17:
+        return 0.10     # Adolescentes hasta 17: 10% de descuento
+    else:
+        return 0.00     # Adultos: sin descuento
+
+def registrar_visitante(entrada_nom, entrada_edad, entrada_juegos, etiqueta_res, etiqueta_rec):
+    nombre = entrada_nom.get().strip()
+    texto_edad = entrada_edad.get().strip()
+    texto_juegos = entrada_juegos.get().strip()
+
+    if nombre == "" or texto_edad == "" or texto_juegos == "":
+        messagebox.showwarning("Aviso", "Por favor completa todos los campos.")
+        return
+
+    # La edad debe ser entero (int), no admitimos decimales como 12.5
+    try:
+        edad = int(texto_edad)
+    except ValueError:
+        messagebox.showerror("Error", "La edad debe ser un numero entero. Ejemplo: 12")
+        return
+
+    if edad <= 0:
+        messagebox.showerror("Error", "La edad debe ser mayor que 0.")
+        return
+
+    try:
+        juegos = int(texto_juegos)
+    except ValueError:
+        messagebox.showerror("Error", "La cantidad de juegos debe ser un numero entero.")
+        return
+
+    if juegos <= 0:
+        messagebox.showerror("Error", "La cantidad de juegos debe ser mayor que 0.")
+        return
+
+    # Calculamos primero el costo sin descuento y luego aplicamos el porcentaje correspondiente.
+    total_sin_descuento = juegos * COSTO_JUEGO
+    descuento = calcular_descuento_parque(edad)
+    total_final = total_sin_descuento - total_sin_descuento * descuento  # Precio con descuento aplicado
+
+    historial_parque.append({
+        "nombre": nombre,
+        "edad": edad,
+        "juegos": juegos,
+        "total": total_final
+    })
+
+    # Preparamos el texto del descuento segun si aplica o no.
+    if descuento > 0:
+        desc_texto = "Descuento: " + str(int(descuento * 100)) + "%"
+    else:
+        desc_texto = "Descuento: sin descuento"
+
+    etiqueta_res.config(
+        text=(
+            "Visitante: " + nombre + "  (edad: " + str(edad) + ")\n"
+            "Juegos: " + str(juegos) + " x S/ " + str(COSTO_JUEGO) + " = S/ " + str(total_sin_descuento) + "\n"
+            + desc_texto + "\n"
+            "Total a pagar: S/ " + str(round(total_final, 2))
+        )
+    )
+
+    # sum() recorre toda la lista y suma el campo "total" de cada visitante registrado.
+    # Esto nos da el acumulado total que ha recaudado el parque en la sesion actual.
+    total_recaudado = sum(v["total"] for v in historial_parque)
+    etiqueta_rec.config(text="Total recaudado por el parque: S/ " + str(round(total_recaudado, 2)))
+
+    entrada_nom.delete(0, tk.END)
+    entrada_edad.delete(0, tk.END)
+    entrada_juegos.delete(0, tk.END)
+    entrada_nom.focus()
+
+def ver_historial_parque():
+    if len(historial_parque) == 0:
+        messagebox.showinfo("Aviso", "No hay visitantes registrados todavia.")
+        return
+
+    ventana_h = tk.Toplevel()
+    ventana_h.title("Historial de visitantes")
+
+    tk.Label(ventana_h, text="Historial de visitantes", font=("Arial", 12, "bold")).pack(pady=10)
+
+    barra = tk.Scrollbar(ventana_h)
+    barra.pack(side=tk.RIGHT, fill=tk.Y)
+
+    area = tk.Text(ventana_h, width=45, height=15, yscrollcommand=barra.set)
+    area.pack(padx=10, pady=5)
+    barra.config(command=area.yview)
+
+    # Acumulamos el total recaudado recorriendo el historial con un contador manual.
+    total_recaudado = 0
+    for i, v in enumerate(historial_parque, 1):
+        total_recaudado += v["total"]   # += es equivalente a total_recaudado = total_recaudado + v["total"]
+        area.insert(tk.END,
+            str(i) + ". " + v["nombre"] + "  (edad: " + str(v["edad"]) + ")\n"
+            "   Juegos: " + str(v["juegos"]) + "\n"
+            "   Total pagado: S/ " + str(round(v["total"], 2)) + "\n"
+            "   --------------------\n"
+        )
+
+    area.insert(tk.END, "\nTotal recaudado: S/ " + str(round(total_recaudado, 2)) + "\n")
+    area.config(state=tk.DISABLED)
+    tk.Button(ventana_h, text="Cerrar", command=ventana_h.destroy).pack(pady=8)
+
+def abrir_ejercicio2():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 2 - Parque de diversiones")
+
+    tk.Label(ventana, text="Sistema de pago en parque de diversiones", font=("Arial", 13, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(ventana, text="Nombre del visitante:").grid(row=1, column=0, sticky="w", padx=15, pady=5)
+    entrada_nom = tk.Entry(ventana, width=25)
+    entrada_nom.grid(row=1, column=1, padx=10)
+
+    tk.Label(ventana, text="Edad:").grid(row=2, column=0, sticky="w", padx=15, pady=5)
+    entrada_edad = tk.Entry(ventana, width=25)
+    entrada_edad.grid(row=2, column=1, padx=10)
+
+    tk.Label(ventana, text="Cantidad de juegos:").grid(row=3, column=0, sticky="w", padx=15, pady=5)
+    entrada_juegos = tk.Entry(ventana, width=25)
+    entrada_juegos.grid(row=3, column=1, padx=10)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=5, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.grid(row=4, column=0, columnspan=2, padx=15, pady=8)
+
+    # Esta etiqueta muestra el total acumulado y se actualiza cada vez que se registra un visitante.
+    etiqueta_rec = tk.Label(ventana, text="Total recaudado por el parque: S/ 0")
+    etiqueta_rec.grid(row=6, column=0, columnspan=2, pady=3)
+
+    frame_botones = tk.Frame(ventana)
+    frame_botones.grid(row=7, column=0, columnspan=2, pady=5)
+
+    tk.Button(frame_botones, text="Registrar", width=15,
+              command=lambda: registrar_visitante(entrada_nom, entrada_edad, entrada_juegos, etiqueta_res, etiqueta_rec)
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(frame_botones, text="Ver historial", width=15,
+              command=ver_historial_parque
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(ventana, text="Regresar al menu", width=20,
+              command=ventana.destroy
+              ).grid(row=8, column=0, columnspan=2, pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 3 - Descuentos por mes en tienda
+# -----------------------------------------------
+
+historial_tienda = []
+
+def calcular_descuento_tienda(numero_mes):
+    # Convertimos el numero del mes (1-12) a su nombre en texto usando una lista como indice.
+    # La lista empieza en indice 0, entonces restamos 1 al numero del mes para obtener la posicion correcta.
+    nombres = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+               "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    nombre_mes = nombres[numero_mes - 1]  # Ej: mes 7 -> indice 6 -> "Julio"
+
+    # Solo ciertos meses tienen promocion. El resto retorna 0.00 (sin descuento).
+    if numero_mes == 7:
+        return nombre_mes, 0.10   # Julio: 10% (campanas escolares)
+    elif numero_mes == 10:
+        return nombre_mes, 0.15   # Octubre: 15%
+    elif numero_mes == 12:
+        return nombre_mes, 0.20   # Diciembre: 20% (navidad)
+    else:
+        return nombre_mes, 0.00   # Retorna una tupla con dos valores: nombre y porcentaje
+
+def registrar_compra(entrada_nom, entrada_mes, entrada_importe, etiqueta_res, etiqueta_total):
+    nombre = entrada_nom.get().strip()
+    texto_mes = entrada_mes.get().strip()
+    texto_importe = entrada_importe.get().strip()
+
+    if nombre == "" or texto_mes == "" or texto_importe == "":
+        messagebox.showwarning("Aviso", "Por favor completa todos los campos.")
+        return
+
+    try:
+        numero_mes = int(texto_mes)
+    except ValueError:
+        messagebox.showerror("Error", "El mes debe ser un numero del 1 al 12.")
+        return
+
+    # Validamos que el numero ingresado sea un mes valido dentro del rango 1-12.
+    if numero_mes < 1 or numero_mes > 12:
+        messagebox.showerror("Error", "El mes debe estar entre 1 y 12.")
+        return
+
+    try:
+        importe = float(texto_importe)
+    except ValueError:
+        messagebox.showerror("Error", "El importe debe ser un numero. Ejemplo: 250")
+        return
+
+    if importe <= 0:
+        messagebox.showerror("Error", "El importe debe ser mayor que 0.")
+        return
+
+    # La funcion retorna dos valores a la vez (tupla), los desempaquetamos en dos variables.
+    nombre_mes, descuento = calcular_descuento_tienda(numero_mes)
+    monto_descuento = importe * descuento       # Cuanto dinero se descuenta
+    total = importe - monto_descuento           # Lo que realmente paga el cliente
+
+    historial_tienda.append({
+        "nombre": nombre,
+        "mes": nombre_mes,
+        "importe": importe,
+        "descuento": int(descuento * 100),  # Guardamos el porcentaje como entero (ej: 20, no 0.20)
+        "total": total
+    })
+
+    if descuento > 0:
+        desc_texto = "Descuento: " + str(int(descuento * 100)) + "% (-S/ " + str(round(monto_descuento, 2)) + ")"
+    else:
+        desc_texto = "Descuento: sin promocion este mes"
+
+    etiqueta_res.config(
+        text=(
+            "Cliente: " + nombre + "\n"
+            "Mes: " + nombre_mes + "\n"
+            "Importe: S/ " + str(round(importe, 2)) + "\n"
+            + desc_texto + "\n"
+            "Total final: S/ " + str(round(total, 2))
+        )
+    )
+
+    # Recalculamos el total del dia sumando todos los totales del historial desde cero.
+    # Usamos una expresion generadora dentro de sum() para recorrer la lista en una sola linea.
+    total_dia = sum(c["total"] for c in historial_tienda)
+    etiqueta_total.config(text="Total vendido hoy: S/ " + str(round(total_dia, 2)))
+
+    entrada_nom.delete(0, tk.END)
+    entrada_mes.delete(0, tk.END)
+    entrada_importe.delete(0, tk.END)
+    entrada_nom.focus()
+
+def ver_historial_tienda():
+    if len(historial_tienda) == 0:
+        messagebox.showinfo("Aviso", "No hay compras registradas todavia.")
+        return
+
+    ventana_h = tk.Toplevel()
+    ventana_h.title("Historial de compras")
+
+    tk.Label(ventana_h, text="Historial de compras", font=("Arial", 12, "bold")).pack(pady=10)
+
+    barra = tk.Scrollbar(ventana_h)
+    barra.pack(side=tk.RIGHT, fill=tk.Y)
+
+    area = tk.Text(ventana_h, width=45, height=15, yscrollcommand=barra.set)
+    area.pack(padx=10, pady=5)
+    barra.config(command=area.yview)
+
+    total_dia = 0
+    for i, c in enumerate(historial_tienda, 1):
+        total_dia += c["total"]
+        area.insert(tk.END,
+            str(i) + ". " + c["nombre"] + "  (" + c["mes"] + ")\n"
+            "   Importe: S/ " + str(round(c["importe"], 2)) + "\n"
+            "   Descuento: " + str(c["descuento"]) + "%\n"
+            "   Total: S/ " + str(round(c["total"], 2)) + "\n"
+            "   --------------------\n"
+        )
+
+    area.insert(tk.END, "\nTotal vendido hoy: S/ " + str(round(total_dia, 2)) + "\n")
+    area.config(state=tk.DISABLED)
+    tk.Button(ventana_h, text="Cerrar", command=ventana_h.destroy).pack(pady=8)
+
+def abrir_ejercicio3():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 3 - Descuentos por mes")
+
+    tk.Label(ventana, text="Sistema de descuentos por mes en tienda", font=("Arial", 13, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(ventana, text="Nombre del cliente:").grid(row=1, column=0, sticky="w", padx=15, pady=5)
+    entrada_nom = tk.Entry(ventana, width=25)
+    entrada_nom.grid(row=1, column=1, padx=10)
+
+    tk.Label(ventana, text="Mes (numero del 1 al 12):").grid(row=2, column=0, sticky="w", padx=15, pady=5)
+    entrada_mes = tk.Entry(ventana, width=25)
+    entrada_mes.grid(row=2, column=1, padx=10)
+
+    tk.Label(ventana, text="Importe de compra (S/):").grid(row=3, column=0, sticky="w", padx=15, pady=5)
+    entrada_importe = tk.Entry(ventana, width=25)
+    entrada_importe.grid(row=3, column=1, padx=10)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=5, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.grid(row=5, column=0, columnspan=2, padx=15, pady=8)
+
+    etiqueta_total = tk.Label(ventana, text="Total vendido hoy: S/ 0")
+    etiqueta_total.grid(row=6, column=0, columnspan=2, pady=3)
+
+    frame_botones = tk.Frame(ventana)
+    frame_botones.grid(row=7, column=0, columnspan=2, pady=5)
+
+    tk.Button(frame_botones, text="Registrar", width=15,
+              command=lambda: registrar_compra(entrada_nom, entrada_mes, entrada_importe, etiqueta_res, etiqueta_total)
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(frame_botones, text="Ver historial", width=15,
+              command=ver_historial_tienda
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(ventana, text="Regresar al menu", width=20,
+              command=ventana.destroy
+              ).grid(row=8, column=0, columnspan=2, pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 4 - Validacion numero menor que 10
+# -----------------------------------------------
+
+def abrir_ejercicio4():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 4 - Validacion numero menor que 10")
+
+    # Usamos una lista con un solo elemento [0] en lugar de una variable simple.
+    # Esto es necesario porque las funciones internas (como validar_numero) no pueden
+    # modificar variables locales del nivel superior directamente, pero si pueden
+    # modificar el contenido de una lista. Es un truco comun en tkinter con funciones anidadas.
+    intentos = [0]
+
+    tk.Label(ventana, text="Validacion: numero menor que 10", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa un numero entero menor que 10:").pack()
+
+    entrada_num = tk.Entry(ventana, width=20)
+    entrada_num.pack(pady=5)
+
+    etiqueta_res = tk.Label(ventana, text="", width=40, height=4, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=8)
+
+    etiqueta_intentos = tk.Label(ventana, text="Intentos realizados: 0", fg="gray")
+    etiqueta_intentos.pack()
+
+    # Funcion interna (anidada): se define dentro de abrir_ejercicio4 y puede
+    # acceder a las variables de su funcion contenedora (closure).
+    def validar_numero():
+        texto = entrada_num.get().strip()
+
+        try:
+            numero = int(texto)
+        except ValueError:
+            # Contamos el intento fallido aunque no sea un numero valido.
+            intentos[0] += 1
+            etiqueta_intentos.config(text="Intentos realizados: " + str(intentos[0]))
+            etiqueta_res.config(text="Error: debes ingresar un numero entero.\nIntenta de nuevo.")
+            entrada_num.delete(0, tk.END)
+            return
+
+        intentos[0] += 1
+        etiqueta_intentos.config(text="Intentos realizados: " + str(intentos[0]))
+
+        if numero >= 10:
+            # El numero no cumple la condicion, seguimos esperando otro intento.
+            etiqueta_res.config(text="El numero " + str(numero) + " no es menor que 10.\nIntenta de nuevo.")
+            entrada_num.delete(0, tk.END)
+        else:
+            # Numero valido: mostramos el resultado y bloqueamos los controles.
+            etiqueta_res.config(
+                text="Numero correcto: " + str(numero) + "\nLo lograste en " + str(intentos[0]) + " intento(s).",
+            )
+            # Desactivamos el campo y el boton para que no se puedan seguir ingresando datos.
+            entrada_num.config(state=tk.DISABLED)
+            boton_validar.config(state=tk.DISABLED)
+
+    boton_validar = tk.Button(ventana, text="Validar", width=15, command=validar_numero)
+    boton_validar.pack(pady=5)
+
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 5 - Validacion numero en rango 0-20
+# -----------------------------------------------
+
+def numero_en_rango(numero):
+    # Funcion reutilizable que verifica si el numero esta estrictamente entre 0 y 20.
+    # "Estrictamente" significa que 0 y 20 no son validos, solo los numeros entre ellos.
+    # Esta funcion se usa tanto en el ejercicio 5 como en el 6.
+    if numero > 0 and numero < 20:
+        return True
+    else:
+        return False
+
+def abrir_ejercicio5():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 5 - Validacion numero en rango 0-20")
+
+    intentos = [0]
+
+    tk.Label(ventana, text="Validacion: numero en rango (0, 20)", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa un numero entero entre 0 y 20 (sin incluirlos):").pack()
+
+    entrada_num = tk.Entry(ventana, width=20)
+    entrada_num.pack(pady=5)
+
+    etiqueta_res = tk.Label(ventana, text="", width=40, height=4, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=8)
+
+    etiqueta_intentos = tk.Label(ventana, text="Intentos realizados: 0", fg="gray")
+    etiqueta_intentos.pack()
+
+    def validar_numero():
+        texto = entrada_num.get().strip()
+
+        try:
+            numero = int(texto)
+        except ValueError:
+            intentos[0] += 1
+            etiqueta_intentos.config(text="Intentos realizados: " + str(intentos[0]))
+            etiqueta_res.config(text="Error: debes ingresar un numero entero.\nIntenta de nuevo.")
+            entrada_num.delete(0, tk.END)
+            return
+
+        intentos[0] += 1
+        etiqueta_intentos.config(text="Intentos realizados: " + str(intentos[0]))
+
+        # Llamamos a la funcion externa numero_en_rango() que definimos arriba.
+        # El "not" invierte el resultado: si esta fuera del rango, muestra error.
+        if not numero_en_rango(numero):
+            etiqueta_res.config(
+                text="El numero " + str(numero) + " esta fuera del rango (0, 20).\nIntenta de nuevo."
+            )
+            entrada_num.delete(0, tk.END)
+        else:
+            etiqueta_res.config(
+                text="Numero valido: " + str(numero) + "\nLo lograste en " + str(intentos[0]) + " intento(s)."
+            )
+            entrada_num.config(state=tk.DISABLED)
+            boton_validar.config(state=tk.DISABLED)
+
+    boton_validar = tk.Button(ventana, text="Validar", width=15, command=validar_numero)
+    boton_validar.pack(pady=5)
+
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 6 - Registro de intentos de validacion
+# -----------------------------------------------
+
+def abrir_ejercicio6():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 6 - Registro de intentos")
+
+    # Lista donde guardamos TODOS los valores ingresados, sean correctos o no.
+    # Sirve para mostrar el historial completo de intentos al final.
+    numeros_ingresados = []
+    intentos_incorrectos = [0]
+
+    tk.Label(ventana, text="Registro de intentos de validacion", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa un numero entero entre 0 y 20 (sin incluirlos):").pack()
+
+    entrada_num = tk.Entry(ventana, width=20)
+    entrada_num.pack(pady=5)
+
+    etiqueta_res = tk.Label(ventana, text="", width=40, height=3, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=5)
+
+    etiqueta_conteo = tk.Label(ventana, text="Intentos incorrectos: 0")
+    etiqueta_conteo.pack()
+
+    def validar_numero():
+        texto = entrada_num.get().strip()
+
+        try:
+            numero = int(texto)
+        except ValueError:
+            intentos_incorrectos[0] += 1
+            # Guardamos el texto literal (con la nota) para que el historial sea claro.
+            numeros_ingresados.append(texto + " (no es numero)")
+            etiqueta_conteo.config(text="Intentos incorrectos: " + str(intentos_incorrectos[0]))
+            etiqueta_res.config(text="Error: debes ingresar un numero entero.\nIntenta de nuevo.")
+            entrada_num.delete(0, tk.END)
+            return
+
+        # Guardamos el numero incluso si esta fuera de rango, para tener registro completo.
+        numeros_ingresados.append(numero)
+
+        if not numero_en_rango(numero):
+            intentos_incorrectos[0] += 1
+            etiqueta_conteo.config(text="Intentos incorrectos: " + str(intentos_incorrectos[0]))
+            etiqueta_res.config(
+                text="El numero " + str(numero) + " esta fuera del rango (0, 20).\nIntenta de nuevo."
+            )
+            entrada_num.delete(0, tk.END)
+        else:
+            etiqueta_res.config(
+                text="Numero valido: " + str(numero) + "\nIntentos incorrectos: " + str(intentos_incorrectos[0])
+            )
+            entrada_num.config(state=tk.DISABLED)
+            boton_validar.config(state=tk.DISABLED)
+            # Activamos el boton del historial solo cuando se logra un numero valido.
+            boton_historial.config(state=tk.NORMAL)
+
+    # Funcion interna que abre la ventana con todos los intentos registrados.
+    def ver_historial_intentos():
+        ventana_h = tk.Toplevel()
+        ventana_h.title("Historial de intentos")
+
+        tk.Label(ventana_h, text="Todos los numeros ingresados:", font=("Arial", 12, "bold")).pack(pady=10)
+
+        barra = tk.Scrollbar(ventana_h)
+        barra.pack(side=tk.RIGHT, fill=tk.Y)
+
+        area = tk.Text(ventana_h, width=35, height=12, yscrollcommand=barra.set)
+        area.pack(padx=10, pady=5)
+        barra.config(command=area.yview)
+
+        # Recorremos la lista y mostramos cada intento numerado.
+        for i, n in enumerate(numeros_ingresados, 1):
+            area.insert(tk.END, str(i) + ". " + str(n) + "\n")
+
+        # Al final del historial mostramos el resumen estadistico.
+        area.insert(tk.END, "\nTotal intentos: " + str(len(numeros_ingresados)) + "\n")
+        area.insert(tk.END, "Intentos incorrectos: " + str(intentos_incorrectos[0]) + "\n")
+        area.config(state=tk.DISABLED)
+
+        tk.Button(ventana_h, text="Cerrar", command=ventana_h.destroy).pack(pady=8)
+
+    boton_validar = tk.Button(ventana, text="Validar", width=15, command=validar_numero)
+    boton_validar.pack(pady=5)
+
+    # Este boton empieza desactivado (state=tk.DISABLED).
+    # Solo se habilita cuando el usuario ingresa un numero valido.
+    boton_historial = tk.Button(ventana, text="Ver historial de intentos", width=25,
+                                state=tk.DISABLED, command=ver_historial_intentos)
+    boton_historial.pack(pady=3)
+
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=10)
+
+
+# -----------------------------------------------
+# EJERCICIO 7 - Suma de los primeros N enteros
+# -----------------------------------------------
+
+def calcular_suma_n(n):
+    # Suma todos los enteros desde 1 hasta n usando un ciclo for.
+    # Ejemplo: si n=4, calcula 1+2+3+4 = 10
+    suma = 0
+    for i in range(1, n + 1):  # range(1, n+1) genera los numeros del 1 al n inclusive
+        suma = suma + i
+    return suma
+
+def construir_secuencia(n):
+    # Genera el texto visual de la suma: "1 + 2 + 3 + ... + n"
+    # Primero construimos una lista con cada numero como texto, luego los unimos con " + ".
+    partes = []
+    for i in range(1, n + 1):
+        partes.append(str(i))
+    return " + ".join(partes)  # join() une todos los elementos de la lista con el separador indicado
+
+def abrir_ejercicio7():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 7 - Suma de primeros N enteros")
+
+    tk.Label(ventana, text="Suma de los primeros N enteros", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa un numero N positivo:").pack()
+
+    entrada_n = tk.Entry(ventana, width=20)
+    entrada_n.pack(pady=5)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=3, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=5)
+
+    # Scrollbar horizontal para poder deslizar la secuencia si es muy larga.
+    # orient="horizontal" cambia la orientacion por defecto (que es vertical).
+    barra = tk.Scrollbar(ventana, orient="horizontal")
+    barra.pack(fill=tk.X, padx=15)
+
+    # wrap=tk.NONE evita que el texto salte de linea automaticamente,
+    # forzando el uso del scroll horizontal para leer secuencias largas.
+    area_secuencia = tk.Text(ventana, width=45, height=4, wrap=tk.NONE, xscrollcommand=barra.set)
+    area_secuencia.pack(padx=15, pady=3)
+    barra.config(command=area_secuencia.xview)  # Conectamos la barra con el desplazamiento horizontal
+
+    def calcular():
+        texto = entrada_n.get().strip()
+
+        try:
+            n = int(texto)
+        except ValueError:
+            messagebox.showerror("Error", "Debes ingresar un numero entero. Ejemplo: 5")
+            return
+
+        if n <= 0:
+            messagebox.showerror("Error", "El numero N debe ser mayor que 0.")
+            return
+
+        suma = calcular_suma_n(n)
+        secuencia = construir_secuencia(n)
+
+        etiqueta_res.config(
+            text="N = " + str(n) + "\n"
+                 "Resultado: " + secuencia + " = " + str(suma)
+        )
+
+        # Habilitamos el area, la limpiamos, escribimos el nuevo resultado y la volvemos a deshabilitar.
+        area_secuencia.config(state=tk.NORMAL)
+        area_secuencia.delete("1.0", tk.END)   # "1.0" significa fila 1, columna 0 (inicio del texto)
+        area_secuencia.insert(tk.END, secuencia + " = " + str(suma))
+        area_secuencia.config(state=tk.DISABLED)
+
+    tk.Button(ventana, text="Calcular", width=15, command=calcular).pack(pady=8)
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=5)
+
+
+# -----------------------------------------------
+# EJERCICIO 8 - Sistema de suma acumulativa
+# -----------------------------------------------
+
+def abrir_ejercicio8():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 8 - Suma acumulativa")
+
+    numeros_ingresados = []
+    suma_acumulada = [0]  # Lista de un elemento para poder modificarla desde la funcion interna
+
+    tk.Label(ventana, text="Sistema de suma acumulativa", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa numeros uno por uno. Escribe 0 para terminar.").pack()
+
+    entrada_num = tk.Entry(ventana, width=20)
+    entrada_num.pack(pady=5)
+
+    etiqueta_suma = tk.Label(ventana, text="Suma acumulada: 0")
+    etiqueta_suma.pack(pady=3)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=3, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=5)
+
+    def agregar_numero():
+        texto = entrada_num.get().strip()
+
+        try:
+            numero = int(texto)
+        except ValueError:
+            messagebox.showerror("Error", "Debes ingresar un numero entero.")
+            entrada_num.delete(0, tk.END)
+            return
+
+        # El 0 funciona como senal de finalizacion, no se suma, solo cierra el proceso.
+        if numero == 0:
+            if len(numeros_ingresados) == 0:
+                messagebox.showwarning("Aviso", "Debes ingresar al menos un numero antes de terminar.")
+                return
+
+            # Mostramos el resumen final de la sesion.
+            etiqueta_res.config(
+                text="Lista: " + str(numeros_ingresados) + "\n"
+                     "Cantidad de numeros: " + str(len(numeros_ingresados)) + "\n"
+                     "Suma total: " + str(suma_acumulada[0])
+            )
+            # Bloqueamos los controles para que no se puedan agregar mas numeros.
+            entrada_num.config(state=tk.DISABLED)
+            boton_agregar.config(state=tk.DISABLED)
+            return
+
+        # Si el numero no es 0, lo agregamos a la lista y actualizamos la suma.
+        numeros_ingresados.append(numero)
+        suma_acumulada[0] = suma_acumulada[0] + numero
+        etiqueta_suma.config(text="Suma acumulada: " + str(suma_acumulada[0]))
+
+        entrada_num.delete(0, tk.END)
+        entrada_num.focus()
+
+    boton_agregar = tk.Button(ventana, text="Agregar numero", width=18, command=agregar_numero)
+    boton_agregar.pack(pady=5)
+
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=5)
+
+
+# -----------------------------------------------
+# EJERCICIO 9 - Suma hasta superar un limite
+# -----------------------------------------------
+
+def abrir_ejercicio9():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 9 - Suma hasta superar limite")
+
+    numeros_ingresados = []
+    suma_acumulada = [0]
+
+    tk.Label(ventana, text="Suma hasta superar 100", font=("Arial", 13, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Ingresa numeros enteros. El proceso para cuando la suma supere 100.").pack()
+
+    entrada_num = tk.Entry(ventana, width=20)
+    entrada_num.pack(pady=5)
+
+    etiqueta_suma = tk.Label(ventana, text="Suma parcial: 0")
+    etiqueta_suma.pack(pady=3)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=4, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.pack(padx=15, pady=5)
+
+    def agregar_numero():
+        texto = entrada_num.get().strip()
+
+        try:
+            numero = int(texto)
+        except ValueError:
+            messagebox.showerror("Error", "Debes ingresar un numero entero.")
+            entrada_num.delete(0, tk.END)
+            return
+
+        numeros_ingresados.append(numero)
+        suma_acumulada[0] = suma_acumulada[0] + numero
+
+        etiqueta_suma.config(text="Suma parcial: " + str(suma_acumulada[0]))
+        entrada_num.delete(0, tk.END)
+        entrada_num.focus()
+
+        # Despues de cada ingreso revisamos si ya se supero el limite de 100.
+        # Si es asi, mostramos el resultado final y bloqueamos los controles.
+        if suma_acumulada[0] > 100:
+            etiqueta_res.config(
+                text="La suma supero 100!\n"
+                     "Cantidad de numeros: " + str(len(numeros_ingresados)) + "\n"
+                     "Lista: " + str(numeros_ingresados) + "\n"
+                     "Suma final: " + str(suma_acumulada[0])
+            )
+            entrada_num.config(state=tk.DISABLED)
+            boton_agregar.config(state=tk.DISABLED)
+
+    boton_agregar = tk.Button(ventana, text="Agregar numero", width=18, command=agregar_numero)
+    boton_agregar.pack(pady=5)
+
+    tk.Button(ventana, text="Regresar al menu", width=20, command=ventana.destroy).pack(pady=5)
+
+
+# -----------------------------------------------
+# EJERCICIO 10 - Sistema de pago de trabajadores
+# -----------------------------------------------
+
+historial_pagos = []
+
+def calcular_pago_normal(horas_normales, pago_por_hora):
+    # Pago basico: simplemente horas trabajadas por el valor de la hora.
+    return horas_normales * pago_por_hora
+
+def calcular_pago_extra(horas_extras, pago_por_hora):
+    # La hora extra tiene un recargo del 50% sobre la hora normal (factor 1.5).
+    # Esto es un criterio laboral comun para incentivar el trabajo en tiempo extra.
+    pago_hora_extra = pago_por_hora * 1.5
+    return horas_extras * pago_hora_extra
+
+def calcular_bonificacion_hijos(numero_hijos, pago_por_hora):
+    # Bonificacion familiar: por cada hijo se suma medio valor de la hora normal.
+    # Es un beneficio adicional que depende del salario base del trabajador.
+    return numero_hijos * 0.5 * pago_por_hora
+
+def calcular_pago_total(horas_normales, pago_por_hora, horas_extras, numero_hijos):
+    # Funcion coordinadora que llama a las tres funciones de calculo y las suma.
+    # Retorna los cuatro valores por separado para poder mostrar el desglose en pantalla.
+    pago_normal    = calcular_pago_normal(horas_normales, pago_por_hora)
+    pago_extra     = calcular_pago_extra(horas_extras, pago_por_hora)
+    bonificacion   = calcular_bonificacion_hijos(numero_hijos, pago_por_hora)
+    total          = pago_normal + pago_extra + bonificacion
+    return pago_normal, pago_extra, bonificacion, total  # Retorna una tupla con 4 valores
+
+def registrar_pago(entrada_nom, entrada_hn, entrada_ph, entrada_he, entrada_hijos, etiqueta_res):
+    nombre      = entrada_nom.get().strip()
+    texto_hn    = entrada_hn.get().strip()
+    texto_ph    = entrada_ph.get().strip()
+    texto_he    = entrada_he.get().strip()
+    texto_hijos = entrada_hijos.get().strip()
+
+    # Verificacion de que ninguno de los 5 campos este vacio.
+    if nombre == "" or texto_hn == "" or texto_ph == "" or texto_he == "" or texto_hijos == "":
+        messagebox.showwarning("Aviso", "Por favor completa todos los campos.")
+        return
+
+    # Cada campo se convierte y valida por separado para dar mensajes de error especificos.
+    try:
+        horas_normales = int(texto_hn)
+    except ValueError:
+        messagebox.showerror("Error", "Las horas normales deben ser un numero entero.")
+        return
+
+    if horas_normales < 0:
+        messagebox.showerror("Error", "Las horas normales no pueden ser negativas.")
+        return
+
+    try:
+        pago_por_hora = float(texto_ph)
+    except ValueError:
+        messagebox.showerror("Error", "El pago por hora debe ser un numero. Ejemplo: 15.50")
+        return
+
+    if pago_por_hora <= 0:
+        messagebox.showerror("Error", "El pago por hora debe ser mayor que 0.")
+        return
+
+    try:
+        horas_extras = int(texto_he)
+    except ValueError:
+        messagebox.showerror("Error", "Las horas extras deben ser un numero entero.")
+        return
+
+    if horas_extras < 0:
+        messagebox.showerror("Error", "Las horas extras no pueden ser negativas.")
+        return
+
+    try:
+        numero_hijos = int(texto_hijos)
+    except ValueError:
+        messagebox.showerror("Error", "El numero de hijos debe ser un numero entero.")
+        return
+
+    if numero_hijos < 0:
+        messagebox.showerror("Error", "El numero de hijos no puede ser negativo.")
+        return
+
+    # Desempaquetamos la tupla que retorna calcular_pago_total en 4 variables distintas.
+    pago_normal, pago_extra, bonificacion, total = calcular_pago_total(
+        horas_normales, pago_por_hora, horas_extras, numero_hijos
+    )
+
+    historial_pagos.append({
+        "nombre":      nombre,
+        "pago_normal": pago_normal,
+        "pago_extra":  pago_extra,
+        "bonificacion": bonificacion,
+        "total":       total
+    })
+
+    etiqueta_res.config(
+        text=(
+            "Trabajador    : " + nombre + "\n"
+            "Pago normal   : S/ " + str(round(pago_normal, 2)) + "\n"
+            "Pago extras   : S/ " + str(round(pago_extra, 2)) + "\n"
+            "Bonificacion  : S/ " + str(round(bonificacion, 2)) + "\n"
+            "Total a pagar : S/ " + str(round(total, 2))
+        )
+    )
+
+    entrada_nom.delete(0, tk.END)
+    entrada_hn.delete(0, tk.END)
+    entrada_ph.delete(0, tk.END)
+    entrada_he.delete(0, tk.END)
+    entrada_hijos.delete(0, tk.END)
+    entrada_nom.focus()
+
+def ver_reporte_pagos():
+    if len(historial_pagos) == 0:
+        messagebox.showinfo("Aviso", "No hay trabajadores registrados todavia.")
+        return
+
+    ventana_h = tk.Toplevel()
+    ventana_h.title("Reporte de pagos")
+
+    tk.Label(ventana_h, text="Reporte de pagos", font=("Arial", 12, "bold")).pack(pady=10)
+
+    barra = tk.Scrollbar(ventana_h)
+    barra.pack(side=tk.RIGHT, fill=tk.Y)
+
+    area = tk.Text(ventana_h, width=45, height=15, yscrollcommand=barra.set)
+    area.pack(padx=10, pady=5)
+    barra.config(command=area.yview)
+
+    for i, t in enumerate(historial_pagos, 1):
+        area.insert(tk.END,
+            str(i) + ". " + t["nombre"] + "\n"
+            "   Pago normal  : S/ " + str(round(t["pago_normal"], 2)) + "\n"
+            "   Pago extras  : S/ " + str(round(t["pago_extra"], 2)) + "\n"
+            "   Bonificacion : S/ " + str(round(t["bonificacion"], 2)) + "\n"
+            "   Total        : S/ " + str(round(t["total"], 2)) + "\n"
+            "   --------------------\n"
+        )
+
+    area.config(state=tk.DISABLED)
+    tk.Button(ventana_h, text="Cerrar", command=ventana_h.destroy).pack(pady=8)
+
+def abrir_ejercicio10():
+    ventana = tk.Toplevel()
+    ventana.title("Ejercicio 10 - Pago de trabajadores")
+
+    tk.Label(ventana, text="Sistema de pago de trabajadores", font=("Arial", 13, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(ventana, text="Nombre del trabajador:").grid(row=1, column=0, sticky="w", padx=15, pady=4)
+    entrada_nom = tk.Entry(ventana, width=25)
+    entrada_nom.grid(row=1, column=1, padx=10)
+
+    tk.Label(ventana, text="Horas normales trabajadas:").grid(row=2, column=0, sticky="w", padx=15, pady=4)
+    entrada_hn = tk.Entry(ventana, width=25)
+    entrada_hn.grid(row=2, column=1, padx=10)
+
+    tk.Label(ventana, text="Pago por hora normal (S/):").grid(row=3, column=0, sticky="w", padx=15, pady=4)
+    entrada_ph = tk.Entry(ventana, width=25)
+    entrada_ph.grid(row=3, column=1, padx=10)
+
+    tk.Label(ventana, text="Horas extras trabajadas:").grid(row=4, column=0, sticky="w", padx=15, pady=4)
+    entrada_he = tk.Entry(ventana, width=25)
+    entrada_he.grid(row=4, column=1, padx=10)
+
+    tk.Label(ventana, text="Numero de hijos:").grid(row=5, column=0, sticky="w", padx=15, pady=4)
+    entrada_hijos = tk.Entry(ventana, width=25)
+    entrada_hijos.grid(row=5, column=1, padx=10)
+
+    etiqueta_res = tk.Label(ventana, text="", width=45, height=6, justify="left", anchor="nw", padx=8, pady=5)
+    etiqueta_res.grid(row=6, column=0, columnspan=2, padx=15, pady=8)
+
+    frame_botones = tk.Frame(ventana)
+    frame_botones.grid(row=7, column=0, columnspan=2, pady=5)
+
+    tk.Button(frame_botones, text="Registrar", width=15,
+              command=lambda: registrar_pago(
+                  entrada_nom, entrada_hn, entrada_ph,
+                  entrada_he, entrada_hijos, etiqueta_res)
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(frame_botones, text="Ver reporte", width=15,
+              command=ver_reporte_pagos
+              ).pack(side=tk.LEFT, padx=8)
+
+    tk.Button(ventana, text="Regresar al menu", width=20,
+              command=ventana.destroy
+              ).grid(row=8, column=0, columnspan=2, pady=10)
+
+
+# -----------------------------------------------
+# MENU PRINCIPAL
+# -----------------------------------------------
+
+# tk.Tk() crea la ventana raiz del programa. Solo puede existir una.
+# Todas las demas ventanas son Toplevel() que dependen de esta.
+ventana_principal = tk.Tk()
+ventana_principal.title("Menu Principal - Ejercicios Python")
+
+tk.Label(ventana_principal, text="Menu Principal", font=("Arial", 16, "bold")).pack(pady=15)
+tk.Label(ventana_principal, text="Selecciona un ejercicio:", fg="gray").pack()
+
+# Lista de tuplas: cada tupla contiene el texto del boton y la funcion que debe ejecutar.
+# Esto evita escribir 10 bloques de tk.Button por separado, es mas organizado.
+ejercicios = [
+    ("Ejercicio 1 - Sistema de aumento de sueldos",    abrir_ejercicio1),
+    ("Ejercicio 2 - Pago en parque de diversiones",    abrir_ejercicio2),
+    ("Ejercicio 3 - Descuentos por mes en tienda",     abrir_ejercicio3),
+    ("Ejercicio 4 - Validacion numero menor que 10",   abrir_ejercicio4),
+    ("Ejercicio 5 - Validacion numero en rango 0-20",  abrir_ejercicio5),
+    ("Ejercicio 6 - Registro de intentos",             abrir_ejercicio6),
+    ("Ejercicio 7 - Suma de primeros N enteros",       abrir_ejercicio7),
+    ("Ejercicio 8 - Suma acumulativa",                 abrir_ejercicio8),
+    ("Ejercicio 9 - Suma hasta superar limite",        abrir_ejercicio9),
+    ("Ejercicio 10 - Sistema de pago de trabajadores", abrir_ejercicio10),
+]
+
+# Recorremos la lista y creamos un boton por cada ejercicio dinamicamente.
+# "nombre" es el texto del boton y "funcion" es lo que se ejecuta al presionarlo.
+for nombre, funcion in ejercicios:
+    tk.Button(
+        ventana_principal,
+        text=nombre,
+        width=45,
+        anchor="w",     # El texto del boton se alinea a la izquierda dentro del boton
+        command=funcion
+    ).pack(padx=20, pady=3)
+
+tk.Label(ventana_principal, text="").pack()  # Espacio visual vacio al final
+
+tk.Button(
+    ventana_principal,
+    text="Salir",
+    width=45,
+    command=ventana_principal.destroy  # Cierra la ventana principal y termina el programa
+).pack(padx=20, pady=(0, 20))
+
+# mainloop() es el bucle principal del programa.
+# Mantiene la ventana abierta y escucha eventos (clics, teclas, etc.) hasta que se cierre.
+ventana_principal.mainloop()
